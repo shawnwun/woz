@@ -1,0 +1,95 @@
+<!--<######################################################################
+######################################################################
+#  Copyright Tsung-Hsien Wen, Cambridge Dialogue Systems Group, 2017 #
+######################################################################
+######################################################################-->
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<!--<script type='text/javascript' src='/~thw28/JavaScriptSpellCheck/include.js' ></script>
+<script type='text/javascript'>$Spelling.SpellCheckAsYouType('myTextArea')</script>-->
+
+<script>
+var diallog = [];
+var count=1;
+
+var sent    = "";
+var gen     = "";
+var vidx    = -1;
+var venue   = {};
+var b       = [];
+
+$(document).ready(function() {
+    $("#form").submit(function(event){
+        event.preventDefault();
+        $('html, body').animate({
+            scrollTop: $("#token").offset().top
+        }, 500);
+        sent = $("#token").val();
+        myFunction();
+        return false;
+    });
+
+    function myFunction(){
+
+        var myObject = {
+            'sent'  : sent,
+            'gen'   : gen,
+            'vidx'  : vidx,
+            'venue' : JSON.stringify(venue),
+            'b'     : b };
+
+        var xhr = $.ajax({url: "http://178.79.137.90:8000",
+            type: "POST",
+            data: JSON.stringify(myObject),
+            processData: false,
+            success: function(data,status){
+                if(count<3 && data.gen=="</s> thank you goodbye </s>"){
+                    // check turn is too short
+                    document.getElementById("demo").innerHTML += "<br>"+sent+"<br>"+"You can't finish the dialogue yet"; 
+                } else{
+                    // normal turn
+                    document.getElementById("demo").innerHTML += "<br>"+sent+"<br>"+data.gen;
+                }
+                if(count>=3 && data.gen=="</s> thank you goodbye </s>"){
+                    // ready to finish
+                    window.alert("You can submit the hit now");
+                    document.getElementById("submitButton").removeAttribute("disabled");
+                }
+                document.getElementById("token").value ="";
+                
+                gen     = data.gen;
+                vidx    = data.vidx;
+                venue   = data.venue;
+                b       = data.b_j;
+
+                newturn = {};
+                newturn['gen']  = gen;
+                newturn['sent'] = sent;
+                newturn['vidx'] = vidx;
+                diallog.push(newturn);
+                if(sent!=""){    
+                    count+=1;
+                } },
+            error:
+                function (res) {                        
+                    window.alert("Sorry an error has occured "+JSON.stringify(res));            
+                },
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            xhrFields: {
+                withCredentials: false
+            },
+            crossDomain: true
+        });
+    }
+});
+
+</script>
+
+<p id="demo">Hello , welcome to the Cambridge restaurant system . You can ask for restaurants by area , price range or food type . How may I help you ?</p>
+<form id="form">
+<input id="token" type="text" name="token" size=70 autocomplete="off"/>
+<input type="submit" />
+
+</form>
+
